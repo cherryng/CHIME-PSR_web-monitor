@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+ <meta charset="UTF-8"> 
+ <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<title>Channel 18 - Pulsar monitor test</title>
+<head>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+	<!--<script src="~/Google\ Drive/Cherry\ \&\ Maël/Marriage\ Cherry\&Maël\ -\ admin/Website/shared_dev/js/ext-lib/jquery.min.js"></script>-->
+        <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.2/themes/smoothness/jquery-ui.css" />
+	<link rel="stylesheet" type="text/css" href="http://yui.yahooapis.com/3.18.1/build/cssreset/cssreset-min.css">
+        <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.2/jquery-ui.min.js"></script>
+	<!--<script src="~/Google\ Drive/Cherry\ \&\ Maël/Marriage\ Cherry\&Maël\ -\ admin/Website/shared_dev/js/ext-lib/jquery-ui.min.js"></script>-->
+        <script src="../ext-lib/d3/d3.min.js" charset="utf-8"></script>
+	<script src="../ext-lib/jquery.flot.js"></script>
+	<script src="../ext-lib/jquery.flot.axislabels.js"></script>
+	<script src="../ext-lib/jquery.gridster.min.js"></script>
+	<link rel="stylesheet" href="../ext-lib/jquery.gridster.min.css" />
+	<script src="../ext-lib/jquery.qtip.min.js"></script>
+	<link rel="stylesheet" href="../ext-lib/jquery.qtip.min.css"></link>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/1.10.0/d3-legend.js"></script>
+	<!--<script src="~/Google\ Drive/Cherry\ \&\ Maël/Marriage\ Cherry\&Maël\ -\ admin/Website/shared_dev/js/ext-lib/d3-legend.js"></script>-->
+    
+	<script src="../lib/widget.js"></script>
+	<script src="add_names.js"></script>
+	<script src="thumbnails.js"></script>
+	<script src="thumbnails2.js"></script>
+	<script src="thumbnails3.js"></script>
+	<script src="bars.js"></script>
+	<script src="../lib/data_source.js"></script>
+	<script src="../lib/message_handler.js"></script>
+	<script src='../lib/img_plotting.js'></script>
+	<script src='../lib/category_select_psr.js'></script>
+	<script src='../lib/node_filter_psr.js'></script>
+	<script src='../lib/channel_id.js'></script>
+	<script src='../lib/internet_time.js'></script>
+	<script src='../lib/status_header.js'></script>
+	<script src='../lib/refresh.js'></script>
+	 <script src='../lib/timeseries_plot_psr.js'></script>
+	<script src="plotscript.js"></script>
+	<link rel="stylesheet" href="grid.css" />
+
+
+	<script type="text/javascript">
+          function init()
+          {
+	  var width = $(window).width();
+	  var height = $(window).height();
+	  var new_width = width/22.;
+	  var new_height = height/20.;
+          var gridster = $("#grid").gridster({
+          widget_selector: "div",
+          widget_margins: [8,8],
+          widget_base_dimensions: [new_width, new_height],
+          resize:{enabled:true},
+          }).data('gridster')
+
+          gridster.add_widget('<div id="channel_id"/>',     15, 1, 1, 1);
+          gridster.add_widget('<div id="status_header"/>',  4, 1, 16, 1);
+          gridster.add_widget('<div id="plot1"/>',          13, 7, 1, 2);
+	  gridster.add_widget('<div id="plot2"/>', 6, 5, 14, 2);
+	  gridster.add_widget('<div id="slider_bar"/>', 6, 2, 14, 8);
+          gridster.add_widget('<div id="node_select"/>',    19, 1, 1, 9);
+          gridster.add_widget('<div id="add_names"/>', 19, 2, 1, 10);
+          <!--gridster.add_widget('<div id="add_thumbnails"/>', 19, 2, 1, 14);
+          gridster.add_widget('<div id="add_thumbnails2"/>', 19, 2, 1, 16);
+          gridster.add_widget('<div id="add_thumbnails3"/>', 19, 2, 1, 18);-->
+
+
+          var mh = new messageHandler();
+          var wg = widget.prototype.guid();
+          
+          var sh = new statusHeader("status_header",mh,wg);
+  	  var ci = new channelID('channel_id','Pulsar monitor (work-in-progress)',mh,wg);
+  	  var p1 = new plot1("plot1", "plot1 title", mh,wg);
+          var nf = new nodeFilter("node_select",mh,wg);
+          var at0 = new add_names("add_names",mh,wg);
+          var at = new add_thumbnails("add_thumbnails",mh,wg);
+          var at2 = new add_thumbnails2("add_thumbnails2",mh,wg);
+          var at2 = new add_thumbnails3("add_thumbnails3",mh,wg);
+	  var tp = new plot2("plot2", "ts title",mh,wg);
+	  var ba2 = new sliderbar("slider_bar",mh,wg)
+
+	  sh.setStatus('Not Connected',{'color':'red'});
+
+	  gridster.options.resize.handle_append_to='none';
+            gridster.options.resize.resize=
+                function(e,ui,widget){
+                    if (widget[0].id == 'img_holder'){pf.resize();}
+                };
+
+            gridster.options.resize.stop=
+                function(e,ui,widget){
+                    if (widget[0].id == 'img_holder'){pf.resize();}
+                };
+            gridster.disable();
+
+
+	  }
+	</script>
+
+
+	<script>
+	if(navigator.userAgent.indexOf("Chrome") != -1 ) 
+	{
+        var fontsize = "<style>body{font-size: 125%;}</style>";
+	}
+	else if(navigator.userAgent.indexOf("Opera") != -1 )
+	{
+        var fontsize = "<style>body{font-size: 100%;}</style>";
+	}
+	else if(navigator.userAgent.indexOf("Firefox") != -1 ) 
+	{
+        var fontsize = "<style>body{font-size: 100%;}</style>";
+	}
+	else if((navigator.userAgent.indexOf("MSIE") != -1 ) || (!!document.documentMode == true )) //IF IE > 10
+	{
+        var fontsize = "<style>body {font-size: 100%;}</style>";
+	}  
+	else 
+	{
+        var fontsize = "<style>body {font-size: 100%;}</style>";
+	}
+	</script>
+
+	<script>document.writeln(fontsize);</script>
+
+
+	  <style>
+	  .axis path,
+	  .axis line {
+	  fill: none;
+	  stroke: #000;
+	  shape-rendering: crispEdges;
+	  }
+
+	  .dot {
+	  stroke: #000;
+	  stroke-width: 0.6;
+	  }
+	  
+	  .dot10 {
+          stroke: #000;
+          stroke-width: 5;
+          }
+
+	  .tooltip {
+	  position: absolute;
+	  width: 200px;
+	  height: 28px;
+	  pointer-events: none;
+	  }
+
+	.slider {
+  	position: absolute;
+  	top: 0px;
+  	left: 0px;
+  	width: 50px;
+	}
+
+	.ui-slider-handle{
+    width: 35px !important;
+    font-size: small !important;
+    color: #FF0000 !important;
+    text-align: center !important;
+
+    .ui-sliderFlux-handle{
+    width: 35px !important;
+    font-size: small !important;
+    color: #FF0000 !important;
+    text-align: center !important;
+
+}
+
+	.slider-tray {
+  	position: absolute;
+  	width: 10px;
+  	height: 6px;
+  	border: solid 1px black;
+  	border-top-color: #aaa;
+  	border-radius: 4px;
+  	background-color: #f0f0f0;
+  	box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.08);
+	}
+
+.slider-handle {
+  position: absolute;
+  top: 3px;
+}
+
+.slider-handle-icon {
+  width: 14px;
+  height: 14px;
+  border: solid 1px #aaa;
+  position: absolute;
+  border-radius: 10px;
+  background-color: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  top: -7px;
+  left: -7px;
+}
+
+
+	</style>
+
+</head>
+
+<body onload="init();">
+    <div id="grid" class="gridster"></div>
+<!--    <span class="progressBar" id="myElementId">15%</span> -->
+
+
+</body>
+</html>
