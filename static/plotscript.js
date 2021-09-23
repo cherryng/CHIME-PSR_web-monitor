@@ -18,17 +18,14 @@ function plot1(container, title, mh, wg){
     this.yaxis_width=100   //100
 
     this.plot_size=[]
-        this.plot_size[0]=this.jqcontainer.width() - this.yaxis_width - this.margin
+        this.plot_size[0]=1200 //this.jqcontainer.width() - this.yaxis_width - this.margin
         this.plot_size[1]=this.jqcontainer.height() - this.xaxis_height - this.margin
 
     var margin = {top: 20, right: 130, bottom: 80, left: 60},
         width = this.plot_size[0]-50,
 	height = this.plot_size[1];
-	//	console.log("Initial width", width, "height", height);
 
     var color = d3.scale.category10().domain([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
-	//var color = d3.scale.category20();
-    
 
 // add the graph canvas to the body of the webpage
     var svg = d3.select("#"+this.container).append("svg")
@@ -83,7 +80,6 @@ plot1.prototype.updateplot =
         height = this.plot_size[1];
 
 	var color = d3.scale.category10().domain([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
-//	console.log("color",color);
     var color2 = ["#4B87CB","#913EC8","#E19525","#A9C01E","black","black","black","#C0C1A8","black","#50CCAE"];
     color_list = {
 	 'd':0, // for normal
@@ -105,30 +101,20 @@ plot1.prototype.updateplot =
 	 '8':'u'  // undefined
     }
 
-//    var parseDate = d3.time.format("%Y-%m-%d %H:%M:%S").parse;
-//    var parseDate = d3.time.format("%H:%M:%S").parse;
     var parseDate = d3.time.format("%H:%M %p").parse;
 
     var yScale = d3.scale.linear().range([height, 0 ]);
     var yValue = function(d) { return d["dec"];};
     yMap = function(d) { return yScale(yValue(d));},
     yAxis = d3.svg.axis().scale(yScale).orient("left").ticks(3);
-
-  //  var xScale = d3.scale.linear().range([0, width]);
+    	
     var xScale = d3.time.scale().range([0, width]);
-    //var xValue = function(d) { return d.Unix_utc_start;};
     var xValue = function(d) { return d.time;};
     xMap = function(d) { return xScale(xValue(d));};
     xAxis = d3.svg.axis().scale(xScale).orient("bottom")
-//	.tickFormat(function(d) { return new Date(d.Unix_utc_start*1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}); })
-//	.tickFormat(function(d) { return d.dm;})
-//	.tickFormat(new Date(d.Unix_utc_start*1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}))
-	    //.tickFormat(function(d) { return parseDate.parse(new Date(1544412240.47*1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})); })
 	.tickFormat(d3.time.format("%b%d %H:%M"))
 	.ticks(5)
 	.tickSize(10);
-//.ticks(5);
-//	.tickFormat(d3.time.format("%H:%M")).ticks(5);
 
     var xMinorAxis = d3.svg.axis().scale(xScale)
     .ticks(d3.time.hours,1)
@@ -183,14 +169,12 @@ plot1.prototype.updateplot =
 	    .attr("text-anchor", "left")
 	    .style("font-size", "14px")
 	    .style("fill","#C0C1A8")
-//	    .text("Click on legend");
 	svg.append("text")
 	    .attr("x", width-3)
 	    .attr("y", 159 )
 	    .attr("text-anchor", "left")
 	    .style("font-size", "14px")
 	    .style("fill","gray")
-//	    .text("to filter type");
 
     var type_now = color_list_rv[this.plot_cate];
     var node_now = this.node_mask;
@@ -203,32 +187,25 @@ plot1.prototype.updateplot =
 	    .attr("class", "tooltip")
 	    .style("opacity", 0);
     var formatDecimal = d3.format(".2f");
+
     var parseDate = d3.time.format("%m/%d, %H:%M");
+    var parseDate2 = d3.time.format("%d/%m/%Y, %H:%M");
+
     //Load all sky
-      d3.csv("/static/Planned_Obs.csv"+'?' +(new Date()).getTime(), function(error, dataAll) {
+    d3.csv("/static/Planned_Obs.csv"+'?' +(new Date()).getTime(), function(error, dataAll) {
 	dataAll.forEach(function(d) {
-	    d.Unix_utc_start = +d.Unix_utc_start;
-	    //d.time = parseDate.parse(new Date(d.Unix_utc_start*1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}));
-	    d.time = parseDate.parse(new Date(d.Unix_utc_start*1000).toLocaleTimeString([], {month: '2-digit', day: '2-digit', hour: '2-digit', minute:'2-digit', hour12:false}))
-											
-	    //console.log("Time", d.time);
+	    d.time = parseDate2.parse(new Date(d.Unix_utc_start*1000).toLocaleTimeString([], { year:'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute:'2-digit', hour12:false}))
 	    d["dec"] = +d["dec"];
-//	    console.log("TEST", new Date(d.Unix_utc_start*1000).toLocaleTimeString([], {month: '2-digit', day: '2-digit', hour: '2-digit', minute:'2-digit', hour12:false}));
 	});
-//	xScale.domain([d3.min(dataAll, xValue)-1, d3.max(dataAll, xValue)+1]);
         xScale.domain(d3.extent(dataAll, function(d) { return d.time; }));
-//	console.log("Extent", d3.extent(dataAll, function(d) { return d.Unix_utc_start; }));
-//	xScale.domain(d3.extent(dataAll, function(d) { return d.Unix_utc_start; }));
 	yScale.domain([d3.min(dataAll, yValue)-1, d3.max(dataAll, yValue)+1]);
-//	console.log("Dec", d3.min(dataAll, yValue)-1, d3.max(dataAll, yValue)+1);
 	var xlim1 = d3.min(dataAll, xValue)-1;
 	var xlim2 = d3.max(dataAll, xValue)-1;
-	//console.log("limits,",xlim1, xlim2);
+
 	// draw dots
 	svg.selectAll(".dotall")
 	    .data(dataAll)
 	    .enter().append("circle")
-//	    .filter(function(d) { return ( ((d["type"] == type_now) || (type_now >= 0)) && ( (d["dm"] > DM1) && (d["dm"] < DM2) ) && ( (d["flux600"] > Flux1) && (d["flux600"] < Flux2) ));}) //check this used to be <0
 	    .on("mouseover", function(d) {
 		tooltip.transition()
 		    .duration(200)
@@ -240,10 +217,8 @@ plot1.prototype.updateplot =
 		    .style("top", (d3.event.pageY - 70 ) + "px");})
 	    .attr("class", "dotall")
 	    .attr("r", 3)
-	  //  .attr("cx", xMap)
 	    .attr("cx", function(d) { return xScale(d.time); })
 	    .attr("cy", yMap)
-//	    .style("fill", "#C2C2C2")
 	    .style("fill", function(d) {
 		if (d["status"]<0) {
 		    return "#C2C2C2";}
@@ -253,14 +228,10 @@ plot1.prototype.updateplot =
 
 	//Load current 10
 	d3.csv("/static/Current10.csv"+'?' +(new Date()).getTime(), function(error, data10) {
-	//d3.csv("/static/Current10.csv"+'?' + csvext, function(error, data10) {
 	    data10.forEach(function(d) {
 		d.Unix_utc_start = +d.Unix_utc_start;
-		d.time = parseDate.parse(new Date(d.Unix_utc_start*1000).toLocaleTimeString([], {month: '2-digit', day: '2-digit', hour: '2-digit', minute:'2-digit', hour12:false}))
+		d.time = parseDate2.parse(new Date(d.Unix_utc_start*1000).toLocaleTimeString([], {year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute:'2-digit', hour12:false}))
 		d["dec"] = +d["dec"]; 
-		//console.log("TEST2", new Date(d.Unix_utc_start*1000).toLocaleTimeString([], {month: '2-digit', day: '2-digit', hour: '2-digit', minute:'2-digit', hour12:false}));
-//		console.log("max", d3.max(xValue.map(d=>d.month)) );
-		//console.log("d",d.Unix_utc_start);
 	    });
             svg.append("line")
 		.data(data10.filter(function(d) {return d.time < xlim2 && d.time > xlim1 ; } ))
@@ -271,10 +242,9 @@ plot1.prototype.updateplot =
 		.style("stroke-width", 2)
 		.style("stroke", "black")
 		.style("fill", "none");
-//	    console.log("limits,",xlim1, xlim2);
+
 	    // draw dots
             svg.selectAll(".dot10")
-//		.data(data10.filter(function(d) {return d.Unix_utc_start < xlim2 && d.Unix_utc_start > xlim1 ; } ))
 		.data(data10.filter(function(d) {return d.time < xlim2 && d.time > xlim1 ; } ))
 		.enter().append("circle")
 		.on("mouseover", function(d) {
@@ -286,8 +256,7 @@ plot1.prototype.updateplot =
 			.style("left", (d3.event.pageX -20 ) + "px")
 			.style("top", (d3.event.pageY - 70 ) + "px");})
 		.attr("class", "dot10")
-		.attr("r", 3)
-//		.attr("cx", xMap)
+		.attr("r", 5)
 		.attr("cx", function(d) { return xScale(d.time); })
 		.attr("cy", yMap)
 		.style("fill", "none" );
@@ -332,7 +301,6 @@ plot1.prototype.updateplot =
 plot1.prototype.onclickpsr = 
     function(value){
     this.fireEvent("pulsar.change",value);
-    //    console.log("Fire event", value);
 }
 
 plot1.prototype.changeCate =
@@ -349,14 +317,12 @@ plot1.prototype.changeCate =
 plot1.prototype.changeNodes =
     function(node_mask){
         this.node_mask=node_mask;
-//	console.log("In changeNode, this.node_mask is", this.node_mask);
 	this.draw();
     }
 plot1.prototype.changeDM =
     function(DMval){
         this.DM1=DMval[0];
         this.DM2=DMval[1];
-    //console.log("In changeDM, this.DM1 is", this.DM1);
     this.draw();
     }
 plot1.prototype.changeFlux =
@@ -369,7 +335,6 @@ plot1.prototype.changeFlux =
 
 plot1.prototype.processEvent =
     function(group_name, event_name,data) {
-    //    console.log("THIS IS PROCESS EVENT", event_name)
     switch (event_name){
         case "cate_Select.change":
         this.changeCate(data);
@@ -377,21 +342,17 @@ plot1.prototype.processEvent =
 
         case "nodeFilter.change":
 	    this.changeNodes(data);
-//	    console.log("NODE CHANGED TO:", data);
         break;
 
         case "DMrange.change":
         this.changeDM(data);
-//        console.log("Going to change DM range",data);
 	    break;
 
         case "Flux.change":
         this.changeFlux(data);
-//        console.log("Going to change Flux range",data);
         break;
 
     default:
 	break;
     }
-    //    console.log("After processEvent");
   }
