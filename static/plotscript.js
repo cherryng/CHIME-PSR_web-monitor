@@ -7,7 +7,7 @@ function plot1(container, title, mh, wg){
     this.last_on_change_update = 0;
     this.time_parity = 0;
     this.node_mask = -1;
-    this.plot_cate = 0; //or should it be -1
+    this.plot_cate = -1; //or should it be 0
     this.DM1 = 0;
     this.DM2 = 1300;
     this.Flux1 = -1;
@@ -20,10 +20,12 @@ function plot1(container, title, mh, wg){
     this.plot_size=[]
         this.plot_size[0]=1200 //this.jqcontainer.width() - this.yaxis_width - this.margin
         this.plot_size[1]=this.jqcontainer.height() - this.xaxis_height - this.margin
+    console.log("CHECK", this.jqcontainer.width(), this.jqcontainer.height());
 
     var margin = {top: 20, right: 130, bottom: 80, left: 60},
         width = this.plot_size[0]-50,
 	height = this.plot_size[1];
+   	console.log("Initial width", width, "height", height);
 
     var color = d3.scale.category10().domain([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
 
@@ -80,8 +82,10 @@ plot1.prototype.updateplot =
         height = this.plot_size[1];
 
 	var color = d3.scale.category10().domain([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+//	console.log("color",color);
     var color2 = ["#4B87CB","#913EC8","#E19525","#A9C01E","black","black","black","#C0C1A8","black","#50CCAE"];
     color_list = {
+         '-1':-1, //all
 	 'd':0, // for normal
 	 'n':1, // for nanograv
 	 'b':2, // for binary
@@ -92,6 +96,7 @@ plot1.prototype.updateplot =
 	 'c':9, // candidates
     }
     color_list_rv = {
+         '-1':'-1', //all
 	 '0':'d', // for normal
 	 '1':'n', // for nanograv
 	 '2':'b', // for binary
@@ -177,6 +182,7 @@ plot1.prototype.updateplot =
 	    .style("fill","gray")
 
     var type_now = color_list_rv[this.plot_cate];
+	console.log("Type now", type_now);
     var node_now = this.node_mask;
     var DM1 = this.DM1;
     var DM2 = this.DM2;
@@ -189,36 +195,40 @@ plot1.prototype.updateplot =
     var formatDecimal = d3.format(".2f");
 
     var parseDate = d3.time.format("%m/%d, %H:%M");
-    var parseDate2 = d3.time.format("%d/%m/%Y, %H:%M");
+    var parseDate2 = d3.time.format("%m/%d/%Y, %H:%M");
 
     //Load all sky
     d3.csv("/static/Planned_Obs.csv"+'?' +(new Date()).getTime(), function(error, dataAll) {
 	dataAll.forEach(function(d) {
-	    d.time = parseDate2.parse(new Date(d.Unix_utc_start*1000).toLocaleTimeString([], { year:'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute:'2-digit', hour12:false}))
+	    d.time = parseDate2.parse(new Date(d.Unix_utc_start*1000).toLocaleTimeString(['en-US'], { year:'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute:'2-digit', hour12:false}).replace('24:','00:')) 
+	    //This replace is a hack for a bug in the chrome browser time string. midnight is showing up as 24: which is wrong. 
+	    //It is not a problem if locales 'en-UK' but unfortunately Safari doesn't care about that argument and always show US time. so we are forced to use en-US across the board.
 	    d["dec"] = +d["dec"];
 	});
         xScale.domain(d3.extent(dataAll, function(d) { return d.time; }));
 	yScale.domain([d3.min(dataAll, yValue)-1, d3.max(dataAll, yValue)+1]);
 	var xlim1 = d3.min(dataAll, xValue)-1;
 	var xlim2 = d3.max(dataAll, xValue)-1;
-
 	// draw dots
 	svg.selectAll(".dotall")
 	    .data(dataAll)
 	    .enter().append("circle")
+            .filter(function(d) { return ( ((d["type"] == type_now) || (type_now < 0)) && ( (d["dm"] > DM1) && (d["dm"] < DM2) )  && ( (d["flux600"] > Flux1) && (d["flux600"] < Flux2) ));})
 	    .on("mouseover", function(d) {
 		tooltip.transition()
 		    .duration(200)
 		    .style("opacity", .9);
 		tooltip.html(  d["psrname"] + "<br/> ("+
 			       "Satus;"+d["status"]+" type:"+d["type"]+"<br/> "+
-			       "DM="+formatDecimal(d["dm"])+"; S600="+d["flux600"]+" )")
+			       "DM="+formatDecimal(d["dm"])+"; S600="+d["flux600"]+"  )")
 		    .style("left", (d3.event.pageX -20 ) + "px")
 		    .style("top", (d3.event.pageY - 70 ) + "px");})
 	    .attr("class", "dotall")
 	    .attr("r", 3)
+	  //  .attr("cx", xMap)
 	    .attr("cx", function(d) { return xScale(d.time); })
 	    .attr("cy", yMap)
+//	    .style("fill", "#C2C2C2")
 	    .style("fill", function(d) {
 		if (d["status"]<0) {
 		    return "#C2C2C2";}
@@ -230,7 +240,7 @@ plot1.prototype.updateplot =
 	d3.csv("/static/Current10.csv"+'?' +(new Date()).getTime(), function(error, data10) {
 	    data10.forEach(function(d) {
 		d.Unix_utc_start = +d.Unix_utc_start;
-		d.time = parseDate2.parse(new Date(d.Unix_utc_start*1000).toLocaleTimeString([], {year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute:'2-digit', hour12:false}))
+		d.time = parseDate2.parse(new Date(d.Unix_utc_start*1000).toLocaleTimeString(['en-US'], {year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute:'2-digit', hour12:false}).replace('24:','00:'))
 		d["dec"] = +d["dec"]; 
 	    });
             svg.append("line")
@@ -301,11 +311,12 @@ plot1.prototype.updateplot =
 plot1.prototype.onclickpsr = 
     function(value){
     this.fireEvent("pulsar.change",value);
+    //    console.log("Fire event", value);
 }
 
 plot1.prototype.changeCate =
     function(new_type){
-    var cate_lookup = {'All':0, 'Normal':0, 'NotObs':7, 'NANOGrav':1, 'Binary':2, 'gc':6, 'RRAT':3, 'Magnetar':4} ;
+    var cate_lookup = {'All':-1, 'Normal':0, 'NotObs':7, 'NANOGrav':1, 'Binary':2, 'gc':6, 'RRAT':3, 'Magnetar':4} ;
     var cate_id = cate_lookup[new_type];
         this.plot_cate=cate_id
         console.log("Going to redraw with category of", this.plot_cate);
@@ -317,12 +328,14 @@ plot1.prototype.changeCate =
 plot1.prototype.changeNodes =
     function(node_mask){
         this.node_mask=node_mask;
+//	console.log("In changeNode, this.node_mask is", this.node_mask);
 	this.draw();
     }
 plot1.prototype.changeDM =
     function(DMval){
         this.DM1=DMval[0];
         this.DM2=DMval[1];
+    //console.log("In changeDM, this.DM1 is", this.DM1);
     this.draw();
     }
 plot1.prototype.changeFlux =
@@ -335,6 +348,7 @@ plot1.prototype.changeFlux =
 
 plot1.prototype.processEvent =
     function(group_name, event_name,data) {
+    //    console.log("THIS IS PROCESS EVENT", event_name)
     switch (event_name){
         case "cate_Select.change":
         this.changeCate(data);
@@ -342,17 +356,21 @@ plot1.prototype.processEvent =
 
         case "nodeFilter.change":
 	    this.changeNodes(data);
+//	    console.log("NODE CHANGED TO:", data);
         break;
 
         case "DMrange.change":
         this.changeDM(data);
+//        console.log("Going to change DM range",data);
 	    break;
 
         case "Flux.change":
         this.changeFlux(data);
+//        console.log("Going to change Flux range",data);
         break;
 
     default:
 	break;
     }
+    //    console.log("After processEvent");
   }
